@@ -1,0 +1,125 @@
+1. Change Data Type & Headers
+
+#"Changed Type" = Table.TransformColumnTypes(air_quality_health_dataset_Sheet,{{"Column1", type any}, {"Column2", type text}, {"Column3", type any}, {"Column4", type any}, {"Column5", type any}, {"Column6", type any}, {"Column7", type any}, {"Column8", type any}, {"Column9", type any}, {"Column10", type any}, {"Column11", type any}, {"Column12", type any}, {"Column13", type any}, {"Column14", type any}, {"Column15", type any}, {"Column16", type any}, {"Column17", type any}, {"Column18", type any}, {"Column19", type any}, {"Column20", type any}, {"Column21", type any}, {"Column22", type any}, {"Column23", type any}, {"Column24", type any}, {"Column25", type any}, {"Column26", type any}}),
+
+#"Promoted Headers" = Table.PromoteHeaders(#"Changed Type", [PromoteAllScalars=true]),
+    #"Changed Type1" = Table.TransformColumnTypes(#"Promoted Headers",{{"date", type date}, {"region", type text}, {"AQI", type number}, {"PM2.5", type number}, {"PM10", type number}, {"NO2", type number}, {"SO2", type number}, {"CO", type number}, {"O3", type number}, {"temperature", type number}, {"humidity", type number}, {"wind_speed", type number}, {"precipitation", type number}, {"hospital_visits", Int64.Type}, {"emergency_visits", Int64.Type}, {"mobility_index", type number}, {"school_closures", Int64.Type}, {"public_transport_usage", type number}, {"mask_usage_rate", type number}, {"lockdown_status", Int64.Type}, {"industrial_activity", type number}, {"vehicle_count", Int64.Type}, {"construction_activity", type number}, {"respiratory_admissions", Int64.Type}, {"population_density", type number}, {"green_cover_percentage", type number}}),
+   
+2. New columns:
+
+ #"Added Custom" = Table.AddColumn(#"Changed Type1", "Climate Zone", each if [temperature] > 25 and [precipitation] < 200 then "Desert"
+else if [temperature] >= 18 and [temperature] <= 25 and [precipitation] >= 200 and [precipitation] < 800 then "Semi-arid"
+else if [temperature] < 18 and [precipitation] >= 800 then "Mediterranean"
+else "Temperate"),
+    #"Added Custom1" = Table.AddColumn(#"Added Custom", "Urban_Rural", each if [population_density] >= 1000 and [green_cover_percentage] < 30 then "Urban"
+else "Rural"),
+    #"Added Custom2" = Table.AddColumn(#"Added Custom1", "Climate classification", each if [temperature] > 20 and [humidity] > 70 and [precipitation] > 1000 then "Tropical Rainforest"
+else if [temperature] > 20 and [humidity] < 40 and [precipitation] < 250 then "Desert"
+else if [temperature] >= 10 and [temperature] <= 20 and [precipitation] >= 400 and [precipitation] <= 800 then "Mediterranean"
+else if [temperature] >= 0 and [temperature] <= 10 and [precipitation] > 800 then "Temperate Oceanic"
+else if [temperature] >= 0 and [temperature] <= 10 and [precipitation] < 400 then "Continental"
+else if [temperature] < 0 and [precipitation] < 250 then "Polar Desert"
+else if [temperature] < 0 and [precipitation] >= 250 then "Tundra"
+else if [green_cover_percentage] > 60 then "Forest"
+else "Temperate"),
+    #"Removed Columns" = Table.RemoveColumns(#"Added Custom2",{"Climate Zone"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Removed Columns",{{"Climate classification", "Climate_Zone"}}),
+    #"Added Custom3" = Table.AddColumn(#"Renamed Columns", "Temp_Cat", each if [temperature] <= 0 then "Freezing"
+    else if [temperature] <= 10 then "Cold"
+    else if [temperature] <= 20 then "Cool"
+    else if [temperature] <= 30 then "Warm"
+    else "Hot"),
+    #"Added Custom4" = Table.AddColumn(#"Added Custom3", "Hum_Cat", each if [humidity] >= 0 and [humidity] <= 30 then "Low"
+    else if [humidity] <= 60 then "Moderate"
+    else "High"),
+    #"Added Custom5" = Table.AddColumn(#"Added Custom4", "Wind_Cat", each if [wind_speed] >= 0 and [wind_speed] <= 5 then "Calm"
+    else if [wind_speed] <= 15 then "Breezy"
+    else "Windy"),
+    #"Added Custom6" = Table.AddColumn(#"Added Custom5", "Rain_Cat", each if [precipitation] >= 0 and [precipitation] <= 0.1 then "None"
+    else if [precipitation] <= 2.5 then "Light"
+    else if [precipitation] <= 7.6 then "Moderate"
+    else "Heavy"),
+    #"Added Custom7" = Table.AddColumn(#"Added Custom6", "Custom", each if [mobility_index] >= 0 and [mobility_index] <= 50 then "Restricted"
+    else if [mobility_index] <= 80 then "Normal"
+    else "High mobility"),
+    #"Renamed Columns1" = Table.RenameColumns(#"Added Custom7",{{"Custom", "Mob_Cat"}}),
+    #"Added Custom8" = Table.AddColumn(#"Renamed Columns1", "transport_Cat", each if [public_transport_usage] >= 0 and [public_transport_usage] <= 30 then "Rare"
+    else if [public_transport_usage] <= 70 then "Occasional"
+    else "Frequent"),
+    #"Added Conditional Column" = Table.AddColumn(#"Added Custom8", "Sch_Closure", each if [school_closures] = 0 then "Open" else if [school_closures] = 1 then "Closed" else null),
+    #"Added Conditional Column1" = Table.AddColumn(#"Added Conditional Column", "Lock_Stat", each if [lockdown_status] = 0 then "Lockdown" else if [lockdown_status] = 1 then "No lockdown" else null),
+    #"Added Custom9" = Table.AddColumn(#"Added Conditional Column1", "Air_Index", each if [AQI] >= 0 and [AQI] <= 50 then "Good" 
+    else if [AQI] <= 100 then "Moderate" 
+    else if [AQI] <= 150 then "Unhealthy for Sensitive Groups" 
+    else if [AQI] <= 200 then "Unhealthy" 
+    else if [AQI] <= 300 then "Very Unhealthy" 
+    else "Hazardous"),
+    #"Added Custom10" = Table.AddColumn(#"Added Custom9", "PM2.5_Index", each if [PM2.5] >= 0 and [PM2.5] <= 12 then "Good"
+    else if [PM2.5] <= 35.4 then "Moderate"
+    else if [PM2.5] <= 55.4 then "Unhealthy for Sensitive Groups"
+    else if [PM2.5] <= 150.4 then "Unhealthy"
+    else if [PM2.5] <= 250.4 then "Very Unhealthy"
+    else "Hazardous"),
+    #"Added Custom11" = Table.AddColumn(#"Added Custom10", "PM10_Index", each if [PM10] >= 0 and [PM10] <= 54 then "Good"
+    else if [PM10] <= 154 then "Moderate"
+    else if [PM10] <= 254 then "Unhealthy for Sensitive Groups"
+    else if [PM10] <= 354 then "Unhealthy"
+    else if [PM10] <= 424 then "Very Unhealthy"
+    else "Hazardous"),
+    #"Added Custom12" = Table.AddColumn(#"Added Custom11", "NO2_Index", each if [NO2] >= 0 and [NO2] <= 53 then "Low"
+    else if [NO2] <= 100 then "Moderate"
+    else if [NO2] <= 360 then "High"
+    else "Very High"),
+    #"Added Custom13" = Table.AddColumn(#"Added Custom12", "SO2_Index", each if [SO2] >= 0 and [SO2] <= 35 then "Low"
+    else if [SO2] <= 75 then "Moderate"
+    else if [SO2] <= 185 then "High"
+    else "Very High"),
+    #"Added Custom14" = Table.AddColumn(#"Added Custom13", "CO_Index", each if [CO] >= 0 and [CO] <= 4.4 then "Low"
+    else if [CO] <= 9.4 then "Moderate"
+    else if [CO] <= 12.4 then "High"
+    else "Very High"),
+    #"Added Custom15" = Table.AddColumn(#"Added Custom14", "O3_Index", each if [O3] >= 0 and [O3] <= 54 then "Good"
+    else if [O3] <= 70 then "Moderate"
+    else if [O3] <= 85 then "Unhealthy for Sensitive Groups"
+    else if [O3] <= 105 then "Unhealthy"
+    else if [O3] <= 200 then "Very Unhealthy"
+    else "Hazardous"),
+    #"Added Custom16" = Table.AddColumn(#"Added Custom15", "mask_Rate", each if [mask_usage_rate] >= 0 and [mask_usage_rate] <= 30 then "Low"
+    else if [mask_usage_rate] <= 70 then "Moderate"
+    else "High"),
+    #"Changed Type2" = Table.TransformColumnTypes(#"Added Custom16",{{"industrial_activity", Int64.Type}, {"construction_activity", Int64.Type}, {"green_cover_percentage", Int64.Type}}),
+    #"Added Custom17" = Table.AddColumn(#"Changed Type2", "population_Cat", each if [population_density] >= 0 and [population_density] <= 1000 then "Sparse"
+    else if [population_density] <= 5000 then "Moderate"
+    else "Dense"),
+    #"Added Custom18" = Table.AddColumn(#"Added Custom17", "green_Cat", each if [green_cover_percentage] >= 0 and [green_cover_percentage] <= 20 then "0:20%"
+else if [green_cover_percentage] >= 21 and [green_cover_percentage] <= 50 then "21–50%"
+else if [green_cover_percentage] >= 51 and [green_cover_percentage] <= 100 then "51–100%"
+else "Invalid"),
+    #"Added Custom19" = Table.AddColumn(#"Added Custom18", "industrial_Cat", each if [industrial_activity] >= 0 and [industrial_activity] <= 50 then "Low"
+else if [industrial_activity] >= 51 and [industrial_activity] <= 100 then "Moderate"
+else if [industrial_activity] > 100 then "High"
+else "Invalid"),
+    #"Added Custom20" = Table.AddColumn(#"Added Custom19", "construction_Cat", each if [construction_activity] >= 0 and [construction_activity] <= 5 then "Low"
+else if [construction_activity] >= 6 and [construction_activity] <= 10 then "Moderate"
+else if [construction_activity] > 10 then "High"
+else "Invalid"),
+    #"Removed Other Columns" = Table.SelectColumns(#"Added Custom20",{"date", "region", "hospital_visits", "emergency_visits", "vehicle_count", "respiratory_admissions", "Temp_Cat", "Air_Index", "population_Cat"}),
+    #"Reordered Columns" = Table.ReorderColumns(#"Removed Other Columns",{"date", "hospital_visits", "emergency_visits", "respiratory_admissions", "vehicle_count"}),
+    #"Added Index" = Table.AddIndexColumn(#"Reordered Columns", "Index", 1, 1, Int64.Type),
+    #"Renamed Columns2" = Table.RenameColumns(#"Added Index",{{"Index", "Fact_Key"}}),
+    #"Reordered Columns1" = Table.ReorderColumns(#"Renamed Columns2",{"Fact_Key", "date", "hospital_visits", "emergency_visits", "respiratory_admissions", "vehicle_count"}),
+    #"Merged Queries" = Table.NestedJoin(#"Reordered Columns1", {"date"}, Dim_Date, {"date"}, "Dim_Date", JoinKind.LeftOuter),
+    #"Expanded Dim_Date" = Table.ExpandTableColumn(#"Merged Queries", "Dim_Date", {"Date_Key"}, {"Date_Key"}),
+    #"Merged Queries1" = Table.NestedJoin(#"Expanded Dim_Date", {"region"}, Dim_Region, {"region"}, "Dim_Region", JoinKind.LeftOuter),
+    #"Expanded Dim_Region" = Table.ExpandTableColumn(#"Merged Queries1", "Dim_Region", {"Region_Key"}, {"Region_Key"}),
+    #"Merged Queries2" = Table.NestedJoin(#"Expanded Dim_Region", {"Temp_Cat"}, Dim_Weather, {"Temp_Cat"}, "Dim_Weather", JoinKind.LeftOuter),
+    #"Merged Queries3" = Table.NestedJoin(#"Merged Queries2", {"Air_Index"}, Dim_AirQuality, {"Air_index"}, "Dim_AirQuality", JoinKind.LeftOuter),
+    #"Expanded Dim_AirQuality" = Table.ExpandTableColumn(#"Merged Queries3", "Dim_AirQuality", {"Air_Key"}, {"Air_Key"}),
+    #"Merged Queries4" = Table.NestedJoin(#"Expanded Dim_AirQuality", {"population_Cat"}, Dim_Policy, {"population_Cat"}, "Dim_Policy", JoinKind.LeftOuter),
+    #"Expanded Dim_Policy" = Table.ExpandTableColumn(#"Merged Queries4", "Dim_Policy", {"Policy_Key"}, {"Policy_Key"}),
+    #"Removed Columns1" = Table.RemoveColumns(#"Expanded Dim_Policy",{"Fact_Key"}),
+    #"Reordered Columns2" = Table.ReorderColumns(#"Removed Columns1",{"Date_Key", "Policy_Key", "Air_Key", "Region_Key", "Air_Index", "region", "date", "hospital_visits", "emergency_visits", "respiratory_admissions", "Temp_Cat", "population_Cat", "vehicle_count", "Dim_Weather"})
+in
+    #"Reordered Columns2"
+
+
